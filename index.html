@@ -194,6 +194,24 @@
   .agent h3 { font-size: 24px; margin-bottom: 10px; }
   .agent p { color: var(--muted); font-size: 16px; margin-bottom: 12px; }
 
+  /* the prompt block is meant to be pasted into an agent, so it carries a copy
+     button — hand-selecting it drags in the you> prefixes and the comments */
+  .copy {
+    float: right;                    /* shortens only the lines it sits beside,
+                                        so the comment lines keep their width */
+    margin: -4px -6px 4px 14px;
+    min-width: 70px;                 /* holds its width when the label changes */
+    padding: 6px 10px;
+    font: 600 12px/1.4 "JetBrains Mono", monospace; letter-spacing: .04em;
+    color: var(--muted); background: #131d33;
+    border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .copy:hover { color: var(--fg); border-color: #35507f; }
+  .copy:focus-visible { outline: 2px solid var(--azure); outline-offset: 2px; }
+  .copy[data-state="done"] { color: var(--ok); border-color: var(--ok); }
+  .copy[data-state="fail"] { color: var(--amber); border-color: var(--amber); }
+
   /* faq */
   .faq { margin-top: 36px; display: grid; gap: 12px; }
   details {
@@ -326,6 +344,9 @@
           see the <a href="https://github.com/RectZones/RectZones#install--by-hand">README</a>.</p>
       </div>
       <div class="term">
+        <button class="copy" type="button" aria-live="polite"
+                aria-label="Copy the two prompt lines"
+                data-copy="https://github.com/RectZones/RectZones&#10;install this">Copy</button>
         <div><span class="p">you&gt;</span> https://github.com/RectZones/RectZones</div>
         <div><span class="p">you&gt;</span> install this</div>
         <div><span class="c"># agent clones, builds, guides the permission,</span></div>
@@ -374,5 +395,27 @@
     Built for macOS 13+ · RectZones is not affiliated with Apple, Microsoft, Magnet or Rectangle.
   </footer>
 </main>
+<script>
+  // Copies exactly the two you> lines shown above, nothing hidden: the visible
+  // block stays the source of truth for what lands on the clipboard.
+  document.querySelectorAll(".copy").forEach(function (btn) {
+    var idle = btn.textContent, timer;
+    btn.addEventListener("click", function () {
+      var settle = function (label, state) {
+        clearTimeout(timer);
+        btn.textContent = label;
+        btn.setAttribute("data-state", state);
+        timer = setTimeout(function () {
+          btn.textContent = idle;
+          btn.removeAttribute("data-state");
+        }, 2000);
+      };
+      navigator.clipboard.writeText(btn.dataset.copy).then(
+        function () { settle("Copied", "done"); },
+        function () { settle("Select it", "fail"); }
+      );
+    });
+  });
+</script>
 </body>
 </html>
