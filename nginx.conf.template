@@ -1,5 +1,10 @@
+# The site itself. Marked default_server explicitly: `server_name _` is not a
+# wildcard in nginx, it is a name that never matches a real Host header, so the
+# catch-all behaviour comes entirely from being the default server. Without this
+# the block below would inherit it by being listed first and rectzones.app would
+# redirect to itself forever.
 server {
-    listen       ${PORT};
+    listen       ${PORT} default_server;
     server_name  _;
     root         /usr/share/nginx/html;
     index        index.html;
@@ -7,4 +12,18 @@ server {
     location / {
         try_files $uri $uri/ /index.html;
     }
+}
+
+# The temporary Railway hostname the site launched on. It stays reachable rather
+# than being switched off, so links shared before rectzones.app existed keep
+# working — but it answers with a permanent redirect so search engines transfer
+# their signal to the canonical domain instead of indexing the same page twice.
+#
+# 301, not 302: a temporary redirect leaves the ranking signal on the old host.
+# $request_uri carries the full path and query string, so deep links land on the
+# matching page rather than all collapsing onto the homepage.
+server {
+    listen       ${PORT};
+    server_name  website-production-9e51.up.railway.app;
+    return       301 https://rectzones.app$request_uri;
 }
