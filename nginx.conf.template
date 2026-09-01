@@ -1,29 +1,23 @@
-# The site itself. Marked default_server explicitly: `server_name _` is not a
-# wildcard in nginx, it is a name that never matches a real Host header, so the
-# catch-all behaviour comes entirely from being the default server. Without this
-# the block below would inherit it by being listed first and rectzones.app would
-# redirect to itself forever.
 server {
-    listen       ${PORT} default_server;
+    listen       ${PORT};
     server_name  _;
     root         /usr/share/nginx/html;
     index        index.html;
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
+    gzip on;
+    gzip_types text/plain text/css text/xml application/xml application/json image/svg+xml;
 
-# The temporary Railway hostname the site launched on. It stays reachable rather
-# than being switched off, so links shared before rectzones.app existed keep
-# working — but it answers with a permanent redirect so search engines transfer
-# their signal to the canonical domain instead of indexing the same page twice.
-#
-# 301, not 302: a temporary redirect leaves the ranking signal on the old host.
-# $request_uri carries the full path and query string, so deep links land on the
-# matching page rather than all collapsing onto the homepage.
-server {
-    listen       ${PORT};
-    server_name  website-production-9e51.up.railway.app;
-    return       301 https://rectzones.app$request_uri;
+    add_header X-Content-Type-Options nosniff;
+
+    # Unknown paths are a real 404, so crawlers do not see the landing page under every URL.
+    error_page 404 /404.html;
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Fingerprint-free static assets: long cache, revalidated by Cloudflare in front.
+    location ~* \.(png|webp|jpg|ico|woff2)$ {
+        expires 30d;
+        add_header X-Content-Type-Options nosniff;
+    }
 }
