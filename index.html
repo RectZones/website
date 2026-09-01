@@ -6,16 +6,21 @@
 <title>RectZones — Free FancyZones for Mac · Open-Source Window Manager</title>
 <meta name="description" content="RectZones brings PowerToys FancyZones to macOS: design custom snap zones, drag windows into them, sweep across several zones to span them. A free, open-source alternative to Magnet and Rectangle with fully customizable layouts.">
 <link rel="canonical" href="https://rectzones.app/">
-<link rel="icon" href="icon.png">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0b1220">
 <meta property="og:type" content="website">
 <meta property="og:title" content="RectZones — Free FancyZones for Mac">
 <meta property="og:description" content="Custom snap zones for macOS. Free, open-source, fully customizable — the Mac answer to PowerToys FancyZones, and a free alternative to Magnet.">
 <meta property="og:url" content="https://rectzones.app/">
-<meta property="og:image" content="https://rectzones.app/shot-zones.png">
+<meta property="og:image" content="https://rectzones.app/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="750">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="RectZones — Free FancyZones for Mac">
 <meta name="twitter:description" content="Custom snap zones for macOS. Free, open-source, fully customizable window management.">
-<meta name="twitter:image" content="https://rectzones.app/shot-zones.png">
+<meta name="twitter:image" content="https://rectzones.app/og-image.jpg">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -26,7 +31,7 @@
   "description": "Zone-based window manager for macOS: design custom snap zones, drag windows into them with a trigger key, sweep across several zones to span them, cycle windows through grids from the keyboard. A free, open-source FancyZones equivalent for Mac.",
   "url": "https://rectzones.app/",
   "downloadUrl": "https://github.com/RectZones/RectZones",
-  "screenshot": "https://rectzones.app/shot-zones.png",
+  "screenshot": "https://rectzones.app/og-image.jpg",
   "license": "https://github.com/RectZones/RectZones/blob/main/LICENSE",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
@@ -43,17 +48,19 @@
     {"@type": "Question", "name": "How is RectZones different from Rectangle?",
      "acceptedAnswer": {"@type": "Answer", "text": "Rectangle is a great free tool for fixed positions via keyboard shortcuts. RectZones adds what Rectangle doesn't have: user-designed zone templates with a visual editor, a drag overlay that shows all zones at once, a single-key sweep that combines zones into one area, and per-shortcut grid cycling. RectZones was built from scratch, inspired by Rectangle (MIT)."}},
     {"@type": "Question", "name": "What permissions does RectZones need?",
-     "acceptedAnswer": {"@type": "Answer", "text": "Only macOS Accessibility permission, which every window manager needs to move windows. RectZones has no network access, no analytics, no account — it is a single Objective-C file you can read in one sitting."}},
+     "acceptedAnswer": {"@type": "Answer", "text": "Only macOS Accessibility permission, which every window manager needs to move windows. RectZones has no network access, no analytics, no account — it is two short Objective-C files you can read in one sitting: the app and its tested core."}},
     {"@type": "Question", "name": "Can an AI agent install RectZones for me?",
      "acceptedAnswer": {"@type": "Answer", "text": "Yes. Point your coding agent (Claude Code or similar) at the GitHub repository and say 'install this'. The repo ships SETUP.md, a step-by-step runbook the agent follows: it builds the app, walks you through the permission, verifies everything against the diagnostic log and gives you a tour."}},
     {"@type": "Question", "name": "Does RectZones support multiple monitors?",
-     "acceptedAnswer": {"@type": "Answer", "text": "Yes — zones are defined as proportions of each screen, templates apply per display, and there is a dedicated shortcut to send a window to the next display while keeping its relative position."}}
+     "acceptedAnswer": {"@type": "Answer", "text": "Yes — zones are defined as proportions of each screen, so one template fits every display of the same shape; a rotated (portrait) display can have its own template, picked automatically by the screen's orientation; and there is a dedicated shortcut to send a window to the next display while keeping its relative position."}},
+    {"@type": "Question", "name": "Does RectZones work with macOS Zoom (Accessibility)?",
+     "acceptedAnswer": {"@type": "Answer", "text": "Yes. While Zoom is magnifying the screen, RectZones picks the zone at the point you actually see under the pointer, so dropping a window while zoomed in lands where you aimed."}}
   ]
 }
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/bricolage-grotesque-800-latin.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/instrument-sans-400-latin.woff2">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
   :root {
     --ink: #0b1220;          /* gece masaüstü */
@@ -210,9 +217,17 @@
     color: var(--muted); font-size: 14px; text-align: center;
   }
   footer a { color: var(--muted); text-decoration: underline; }
+  @media (max-width: 1100px) {
+    .zone-art { display: none; } /* fixed-size decorations would sit on the text */
+  }
   @media (max-width: 760px) {
     .agent { grid-template-columns: 1fr; }
     header { padding-top: 56px; }
+    .sub { font-size: 17px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .zone-art .z, .r { animation: none; }
+    .r { opacity: 1; transform: none; }
   }
 </style>
 </head>
@@ -220,13 +235,13 @@
 <main>
   <header>
     <div class="zone-art" aria-hidden="true">
-      <div class="z" style="top:8%; right:2%; width:220px; height:130px; animation-delay:0s"></div>
-      <div class="z fill" style="top:34%; right:12%; width:180px; height:110px; animation-delay:1.4s"></div>
-      <div class="z" style="top:60%; right:-4%; width:260px; height:120px; animation-delay:2.6s"></div>
+      <div class="z" style="top:14%; right:-2%; width:220px; height:130px; animation-delay:0s"></div>
+      <div class="z fill" style="top:38%; right:0; width:160px; height:100px; animation-delay:1.4s"></div>
+      <div class="z" style="top:62%; right:-10%; width:260px; height:120px; animation-delay:2.6s"></div>
     </div>
     <div class="hero">
       <div class="brand r">
-        <img src="icon.png" alt="RectZones app icon">
+        <img src="icon.png" alt="RectZones app icon" width="46" height="46">
         <b>RectZones</b>
         <a class="gh" href="https://github.com/RectZones/RectZones">github.com/RectZones ↗</a>
       </div>
@@ -234,7 +249,8 @@
       <p class="sub r r3">Magnet costs money and locks you into halves. Rectangle is free but its
         positions are fixed. RectZones gives you the missing piece: <b>zones you design yourself</b> —
         hold <kbd>⌘</kbd> while dragging and drop the window exactly where you planned.
-        Hold <kbd>⇧</kbd> to make one window span several zones. Open source, MIT, no account.</p>
+        Keep it held and sweep across several zones to make one window span them all.
+        Open source, MIT, no account.</p>
       <div class="ctas r r4">
         <a class="btn btn-primary" href="https://github.com/RectZones/RectZones">★ View on GitHub</a>
         <a class="btn btn-ghost" href="#agent">🤖 Install with your AI agent</a>
@@ -243,10 +259,10 @@
         <span>100% free &amp; open source</span>
         <span>macOS 13+</span>
         <span>No network, no analytics</span>
-        <span>One Objective-C file</span>
+        <span>Objective-C, zero dependencies</span>
       </div>
       <div class="shot-frame r r5">
-        <img src="shot-zones.png" alt="RectZones overlay: dragging a macOS window over a 3×2 zone grid with two zones selected by sweeping">
+        <img src="shot-zones.webp" width="1200" height="750" alt="RectZones overlay: dragging a macOS window over a 3×2 zone grid with two zones selected by sweeping">
       </div>
     </div>
   </header>
@@ -258,30 +274,34 @@
       <div class="card"><h3>Drag &amp; snap into your zones</h3>
         <p>Hold the trigger key (⌘ by default — or ⌥, ⌃, 🌐, even a custom key) while dragging.
            Your template appears; release over a zone and the window snaps in, with an
-           adjustable gap around it.</p>
-        <img src="shot-drag.png" alt="Zone template appearing while dragging a window with the trigger key" loading="lazy"></div>
+           adjustable gap around it. Works while macOS Zoom is magnifying the screen too:
+           the zone under the pointer is the one you see.</p>
+        <img src="shot-drag.webp" width="1000" height="625" alt="Zone template appearing while dragging a window with the trigger key" loading="lazy"></div>
       <div class="card"><h3>Sweep to span zones</h3>
         <p>No second modifier — keep the same trigger key held and sweep across zones: the preview
            lights up the full area the window will cover, including cells completed by the union,
            before you drop. Let go of the key to cancel.</p>
-        <img src="shot-span.png" alt="Multi-zone selection lighting up the covered cells" loading="lazy"></div>
+        <img src="shot-span.webp" width="1000" height="625" alt="Multi-zone selection lighting up the covered cells" loading="lazy"></div>
       <div class="card"><h3>Design your own templates</h3>
-        <p>Draw zones freely, or type columns × rows and hit Apply Grid. Name templates, switch
-           with one click. Your 4×4 for the ultrawide, your Left-Wide for the laptop.</p>
-        <img src="shot-editor.png" alt="RectZones template editor with a 4×4 grid" loading="lazy"></div>
+        <p>Draw zones freely, or type columns × rows (up to 16×16) and hit Apply Grid. Name
+           templates, switch with one click, and mark one <i>Portrait only</i> so a rotated
+           display gets its own layout. Your 4×4 for the ultrawide, your Left-Wide for the laptop.</p>
+        <img src="shot-editor.webp" width="880" height="705" alt="RectZones template editor with a 4×4 grid" loading="lazy"></div>
       <div class="card"><h3>Keyboard grid cycling</h3>
         <p>Press the same shortcut again and the window hops to the next cell — 2×1 up to 4×2 grids,
            two-thirds, a corner-hop ladder, next display. Each row shows a mini preview of its coverage.</p>
-        <img src="shot-shortcuts.png" alt="RectZones shortcuts panel with per-action grid previews" loading="lazy"></div>
+        <img src="shot-shortcuts.webp" width="600" height="504" alt="RectZones shortcuts panel with per-action grid previews" loading="lazy"></div>
       <div class="card"><h3>Edge &amp; corner snapping</h3>
         <p>No key at all: corners give quarters, the top edge maximizes, the bottom edge gives thirds
            (slide along it for two-thirds), the sides give halves — with a live footprint preview.</p>
-        <img src="shot-edge.png" alt="Corner snap footprint preview while pushing a window to the top-left corner" loading="lazy"></div>
+        <img src="shot-edge.webp" width="1000" height="625" alt="Corner snap footprint preview while pushing a window to the top-left corner" loading="lazy"></div>
       <div class="card"><h3>Honest &amp; auditable</h3>
-        <p>MIT licensed, a single readable source file, zero dependencies, no updater phoning home.
-           The only permission it needs is Accessibility — the one every window manager requires.</p>
+        <p>MIT licensed, two short Objective-C files you can read in a sitting (the app and its
+           tested core), zero dependencies, no updater phoning home. The only permission it
+           needs is Accessibility — the one every window manager requires.</p>
         <div class="term">
-          <div>src/main.m <span class="c">· the whole app, one file</span></div>
+          <div>src/main.m <span class="c">· the app</span></div>
+          <div>src/rzcore.m <span class="c">· the core, under test</span></div>
           <div>dependencies <span class="c">· none</span></div>
           <div>network access <span class="c">· none</span></div>
           <div>LICENSE <span class="c">· MIT</span></div>
@@ -302,7 +322,8 @@
           <tr><th>Platform</th><td class="rz">macOS</td><td>macOS</td><td>macOS</td><td class="no">Windows only</td></tr>
           <tr><th>Custom zone templates</th><td class="rz yes">✓ visual editor + N×M</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
           <tr><th>Zones overlay while dragging</th><td class="rz yes">✓</td><td class="no">edges only</td><td class="no">edges only</td><td class="yes">✓</td></tr>
-          <tr><th>One window across many zones</th><td class="rz yes">✓ hold ⇧</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><th>One window across many zones</th><td class="rz yes">✓ sweep with ⌘</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+          <tr><th>Own template for a rotated display</th><td class="rz yes">✓ landscape / portrait</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓ per monitor</td></tr>
           <tr><th>Keyboard cycling through cells</th><td class="rz yes">✓ with previews</td><td class="yes">✓</td><td class="no">partial</td><td class="no">✗</td></tr>
           <tr><th>Edge/corner snapping</th><td class="rz yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td></tr>
           <tr><th>Gaps between windows</th><td class="rz yes">✓ 0–40 px</td><td class="yes">✓</td><td class="no">✗</td><td class="yes">✓</td></tr>
@@ -354,17 +375,22 @@
         area, and per-shortcut grid cycling. RectZones was built from scratch, inspired by Rectangle (MIT).</p></details>
       <details><summary>What permissions does RectZones need?</summary>
         <p>Only macOS Accessibility permission, which every window manager needs to move windows.
-        RectZones has no network access, no analytics, no account — it is a single Objective-C
-        file you can read in one sitting.</p></details>
+        RectZones has no network access, no analytics, no account — it is two short Objective-C
+        files you can read in one sitting: the app and its tested core.</p></details>
       <details><summary>Can an AI agent install RectZones for me?</summary>
         <p>Yes. Point your coding agent (Claude Code or similar) at the GitHub repository and say
         "install this". The repo ships SETUP.md, a step-by-step runbook the agent follows: it
         builds the app, walks you through the permission, verifies everything against the
         diagnostic log and gives you a tour.</p></details>
       <details><summary>Does RectZones support multiple monitors?</summary>
-        <p>Yes — zones are defined as proportions of each screen, templates apply per display,
-        and there is a dedicated shortcut to send a window to the next display while keeping its
-        relative position.</p></details>
+        <p>Yes — zones are defined as proportions of each screen, so one template fits every
+        display of the same shape; a rotated (portrait) display can have its own template, picked
+        automatically by the screen's orientation; and there is a dedicated shortcut to send a
+        window to the next display while keeping its relative position.</p></details>
+      <details><summary>Does RectZones work with macOS Zoom (Accessibility)?</summary>
+        <p>Yes. While Zoom is magnifying the screen, RectZones picks the zone at the point you
+        actually see under the pointer, so dropping a window while zoomed in lands where you
+        aimed.</p></details>
     </div>
   </section>
 
